@@ -14,7 +14,7 @@ from skimage.morphology import disk, dilation
 from skimage.util import img_as_ubyte
 from skimage.io import imread, imsave
 from skimage.color import rgb2gray, rgb2lab, lab2rgb
-from skimage.filters import sobel, gaussian_filter
+from skimage.filters import sobel, gaussian
 from skimage.restoration import denoise_bilateral
 from skimage.transform import downscale_local_mean
 
@@ -30,13 +30,13 @@ def rand(x):
 def poisson_disc(img, n, k=30):
     h, w = img.shape[:2]
 
-    nimg = denoise_bilateral(img, sigma_range=0.15, sigma_spatial=15)
+    nimg = denoise_bilateral(img, sigma_color=0.1, sigma_spatial=15)
     img_gray = rgb2gray(nimg)
     img_lab = rgb2lab(nimg)
 
     entropy_weight = 2**(entropy(img_as_ubyte(img_gray), disk(15)))
     entropy_weight /= np.amax(entropy_weight)
-    entropy_weight = gaussian_filter(dilation(entropy_weight, disk(15)), 5)
+    entropy_weight = gaussian(dilation(entropy_weight, disk(15)), 5)
 
     color = [sobel(img_lab[:, :, channel])**2 for channel in range(1, 3)]
     edge_weight = functools.reduce(op.add, color) ** (1/2) / 75
@@ -71,7 +71,7 @@ def poisson_disc(img, n, k=30):
             if np.isinf(dist):
                 break
 
-            if dist < point_dist and dist < dists[tuple(tree.data[idx])]:
+            if dist < point_dist and dist < dists[tuple(map(int,tuple(tree.data[idx])))]:
                 return True
 
         return False
@@ -85,10 +85,10 @@ def poisson_disc(img, n, k=30):
     while to_process:
         # Pop a random point.
         point = to_process.pop(random.randrange(len(to_process)))
-
+        point = tuple(map(int, point))
         for _ in range(k):
             new_point = gen_rand_point_around(point)
-
+            new_point = tuple(map(int, new_point))
             if (0 <= new_point[0] < h and 0 <= new_point[1] < w
                     and not has_neighbours(new_point)):
                 to_process.append(new_point)
@@ -154,7 +154,7 @@ def render(img, color_samples):
     colors = np.empty([h, w, 3])
     coords = []
     for color_sample in color_samples:
-        coord = tuple(x*2 for x in color_sample[:2][::-1])
+        coord = tuple(map(int,tuple(x*2 for x in color_sample[:2][::-1])))
         colors[coord] = color_sample[2:]
         coords.append(coord)
 
