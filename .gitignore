@@ -1,6 +1,5 @@
 /env
 *.txt
-/autorenders
 *.jpeg
 *.jpg
 *.png
